@@ -33,7 +33,7 @@ class Analyser extends DatabaseAnalyser {
       collections: [
         ...collections.map((x, index) => ({
           pureName: x.name,
-          tableRowCount: stats[index]?.count,
+          tableRowCount: stats[index] ? stats[index].count : 0,
           uniqueKey: [{ columnName: '_id' }],
           partitionKey: [{ columnName: '_id' }],
           clusterKey: [{ columnName: '_id' }],
