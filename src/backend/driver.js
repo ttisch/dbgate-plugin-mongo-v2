@@ -358,11 +358,12 @@ const driver = {
 
       const collection = dbhan.getDatabase().collection(options.pureName);
       if (options.countDocuments) {
-        const count = await collection.count(convertObjectId(mongoCondition) || {});
+        const count = await collection.count(convertObjectId(mongoCondition) || {}, {});
         return { count };
       } else if (options.aggregate) {
         let cursor = collection.aggregate(convertObjectId(convertToMongoAggregate(options.aggregate)), {
           cursor: { batchSize: 1000 },
+          allowDiskUse: true,
         });
         const rows = await cursor.toArray();
         return {
@@ -372,7 +373,7 @@ const driver = {
           })),
         };
       } else {
-        let cursor = collection.find(convertObjectId(mongoCondition) || {});
+        let cursor = collection.find(convertObjectId(mongoCondition) || {}, {});
         if (options.sort) cursor = cursor.sort(convertToMongoSort(options.sort));
         if (options.skip) cursor = cursor.skip(options.skip);
         if (options.limit) cursor = cursor.limit(options.limit);
