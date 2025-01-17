@@ -58,6 +58,7 @@ class Analyser extends DatabaseAnalyser {
       ],
     });
     // console.log('MERGED', res);
+    fs.appendFileSync('/Users/thomas/Downloads/out.txt', 'MERGED: ');
     return res;
   }
 }

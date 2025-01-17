@@ -4,7 +4,6 @@ const { EJSON } = require('bson');
 
 const logger = getLogger('mongoBulkInsert');
 
-
 function createBulkInsertStream(driver, stream, dbhan, name, options) {
   const collectionName = name.pureName;
   const db = dbhan.getDatabase();
@@ -27,7 +26,13 @@ function createBulkInsertStream(driver, stream, dbhan, name, options) {
         ...row,
       };
     }
-    writable.buffer.push(EJSON.deserialize(row));
+    // Handle both serialized and non-serialized data
+    try {
+      writable.buffer.push(typeof row === 'string' ? EJSON.deserialize(row) : row);
+    } catch (err) {
+      // If deserialization fails, use the original row
+      writable.buffer.push(row);
+    }
   };
 
   writable.checkStructure = async () => {

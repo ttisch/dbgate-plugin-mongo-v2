@@ -14,7 +14,22 @@ const {
 } = require('../frontend/convertToMongoCondition');
 
 function transformMongoData(row) {
-  return EJSON.serialize(row);
+  if (!row) return row;
+
+  // If it's already serialized, return as-is
+  if (row.$type) return row;
+
+  try {
+    // Convert ObjectId to string representation
+    if (row._id instanceof ObjectId) {
+      row = { ...row, _id: row._id.toString() };
+    }
+    return EJSON.serialize(row);
+  } catch (err) {
+    console.error('Error serializing row:', err);
+    // If serialization fails, return a basic object with the data
+    return { ...row };
+  }
 }
 
 async function readCursor(cursor, options) {
@@ -25,7 +40,20 @@ async function readCursor(cursor, options) {
 }
 
 function convertObjectId(condition) {
-  return EJSON.deserialize(condition);
+  if (!condition) return condition;
+
+  // Only attempt to deserialize if it looks like EJSON
+  // EJSON objects from the frontend will have $type field
+  if (typeof condition === 'object' && condition.$type) {
+    try {
+      return EJSON.deserialize(condition);
+    } catch (err) {
+      return condition;
+    }
+  }
+
+  // For regular MongoDB query conditions, return as-is
+  return condition;
 }
 
 function findArrayResult(resValue) {
@@ -134,7 +162,7 @@ const driver = {
     // saveScriptToDatabase({ conid: connection._id, database: name }, `db.createCollection('${newCollection}')`);
   },
   async stream(dbhan, sql, options) {
-    //fs.appendFileSync.'/Users/thomas/Downloads/out.txt', 'stream: ' + dbhan + sql);
+    fs.appendFileSync('/Users/thomas/Downloads/out.txt', 'stream: ' + dbhan + sql);
     let func;
     try {
       func = eval(`(db,ObjectId) => ${sql}`);
@@ -324,7 +352,7 @@ const driver = {
     }));
   },
   async readCollection(dbhan, options) {
-    //fs.appendFileSync.'/Users/thomas/Downloads/out.txt', 'readCollection: ' + dbhan + JSON.stringify(options));
+    fs.appendFileSync('/Users/thomas/Downloads/out.txt', 'readCollection: ' + dbhan + '\n' + JSON.stringify(options));
     try {
       const mongoCondition = convertToMongoCondition(options.condition);
 
@@ -349,8 +377,15 @@ const driver = {
         if (options.skip) cursor = cursor.skip(options.skip);
         if (options.limit) cursor = cursor.limit(options.limit);
         const rows = await cursor.toArray();
+        if (!rows || rows.length === 0) {
+          return {
+            rows: [],
+            structure: { __isDynamicStructure: true },
+          };
+        }
         return {
           rows: rows.map(transformMongoData),
+          structure: { __isDynamicStructure: true },
         };
       }
     } catch (err) {
