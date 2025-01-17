@@ -80,18 +80,19 @@ const driver = {
 
     const client = new MongoClient(mongoUrl, options);
 
-    fs.writeFileSync('/Users/thomas/Downloads/out.txt', 'mongoUrl: ' + mongoUrl);
+    fs.appendFileSync('/Users/thomas/Downloads/out.txt', 'mongoUrl: ' + mongoUrl);
     await client.connect();
     const res = {
       client,
       database,
       getDatabase: database ? () => client.db(database) : () => client.db(),
     };
-    // fs.writeFileSync('/Users/thomas/Downloads/out.txt', 'res: ' + JSON.stringify(res));
+    fs.appendFileSync('/Users/thomas/Downloads/out.txt', 'res: ' + client + database);
     return res;
   },
   // @ts-ignore
   async query(dbhan, sql) {
+    fs.appendFileSync('/Users/thomas/Downloads/out.txt', 'query: ' + dbhan + sql);
     return {
       rows: [],
       columns: [],
@@ -105,6 +106,7 @@ const driver = {
     if (isPromise(res)) await res;
   },
   async operation(dbhan, operation, options) {
+    fs.appendFileSync('/Users/thomas/Downloads/out.txt', 'operation: ' + dbhan + JSON.stringify(operation));
     const { type } = operation;
     switch (type) {
       case 'createCollection':
@@ -128,6 +130,7 @@ const driver = {
     // saveScriptToDatabase({ conid: connection._id, database: name }, `db.createCollection('${newCollection}')`);
   },
   async stream(dbhan, sql, options) {
+    fs.appendFileSync('/Users/thomas/Downloads/out.txt', 'stream: ' + dbhan + sql);
     let func;
     try {
       func = eval(`(db,ObjectId) => ${sql}`);
@@ -242,6 +245,7 @@ const driver = {
     await db.command({ profile: old.was, slowms: old.slowms });
   },
   async readQuery(dbhan, sql, structure) {
+    fs.appendFileSync('/Users/thomas/Downloads/out.txt', 'readQuery: ' + dbhan + sql);
     try {
       const json = JSON.parse(sql);
       if (json && json.pureName) {
@@ -296,20 +300,22 @@ const driver = {
   },
   async listDatabases(dbhan) {
     const res = await dbhan.getDatabase().admin().listDatabases();
+    fs.appendFileSync('/Users/thomas/Downloads/out.txt', 'listDatabases res: ' + JSON.stringify(res));
     return res.databases;
   },
   async readCollection(dbhan, options) {
+    fs.appendFileSync('/Users/thomas/Downloads/out.txt', 'readCollection: ' + dbhan + JSON.stringify(options));
     try {
       const mongoCondition = convertToMongoCondition(options.condition);
-      // console.log('******************* mongoCondition *****************');
-      // console.log(JSON.stringify(mongoCondition, undefined, 2));
 
       const collection = dbhan.getDatabase().collection(options.pureName);
       if (options.countDocuments) {
-        const count = await collection.countDocuments(convertObjectId(mongoCondition) || {});
+        const count = await collection.count(convertObjectId(mongoCondition) || {});
         return { count };
       } else if (options.aggregate) {
-        let cursor = await collection.aggregate(convertObjectId(convertToMongoAggregate(options.aggregate)));
+        let cursor = collection.aggregate(convertObjectId(convertToMongoAggregate(options.aggregate)), {
+          cursor: { batchSize: 1000 },
+        });
         const rows = await cursor.toArray();
         return {
           rows: rows.map(transformMongoData).map((x) => ({
@@ -318,8 +324,7 @@ const driver = {
           })),
         };
       } else {
-        // console.log('options.condition', JSON.stringify(options.condition, undefined, 2));
-        let cursor = await collection.find(convertObjectId(mongoCondition) || {});
+        let cursor = collection.find(convertObjectId(mongoCondition) || {});
         if (options.sort) cursor = cursor.sort(convertToMongoSort(options.sort));
         if (options.skip) cursor = cursor.skip(options.skip);
         if (options.limit) cursor = cursor.limit(options.limit);
