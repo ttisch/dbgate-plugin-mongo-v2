@@ -29,6 +29,13 @@ const driver = {
   ...driverBase,
   dumperClass: Dumper,
   databaseEngineTypes: ['document'],
+  features: {
+    isEditable: true,
+    supportsDatabaseDrop: true,
+    supportsCollectionCreate: true,
+    supportsCollectionDrop: true,
+    supportsCollectionEdit: true,
+  },
   dialect,
   engine: 'mongo@dbgate-plugin-mongo-v2',
   title: 'MongoDB v2',
@@ -55,9 +62,9 @@ const driver = {
     console.log('SHOW CONNECTION FIELD', field, values);
     if (field == 'useDatabaseUrl') return true;
     if (values.useDatabaseUrl) {
-      return ['databaseUrl', 'defaultDatabase', 'singleDatabase', 'isReadOnly'].includes(field);
+      return ['databaseUrl', 'defaultDatabase', 'singleDatabase'].includes(field);
     }
-    return ['server', 'port', 'user', 'password', 'defaultDatabase', 'singleDatabase', 'isReadOnly'].includes(field);
+    return ['server', 'port', 'user', 'password', 'defaultDatabase', 'singleDatabase'].includes(field);
   },
 
   importExportArgs: [
@@ -96,11 +103,11 @@ const driver = {
           ...update.fields,
         })});\n`;
       } else {
-        const set = _pickBy(update.fields, (v, k) => v !== undefined);
+        const set = _pickBy(update.fields, (v, k) => !v || !v.$$undefined$$);
         const unset = _fromPairs(
           Object.keys(update.fields)
-            .filter((k) => update.fields[k] === undefined)
-            .map((k) => [k, ''])
+            .filter((k) => update.fields[k] && update.fields[k].$$undefined$$)
+            .map((k) => [k, 1])
         );
         const updates = {};
         if (!_.isEmpty(set)) updates.$set = set;
@@ -151,8 +158,14 @@ const driver = {
     supportJsonType: true,
     supportObjectIdType: true,
     supportNullType: true,
+    supportArrayType: true,
+    supportBinaryType: true,
 
     supportFieldRemoval: true,
+    isEditable: true,
+    allowInlineEdit: true,
+    allowDataEdit: true,
+    readOnly: false,
   },
 
   getScriptTemplates(objectTypeField) {

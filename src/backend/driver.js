@@ -4,7 +4,8 @@ const isPromise = require('is-promise');
 const driverBase = require('../frontend/driver');
 const Analyser = require('./Analyser');
 const { MongoClient, ObjectId, AbstractCursor } = require('mongodb');
-const { EJSON } = require('bson');
+const BSON = require('bson');
+const EJSON = BSON.EJSON || BSON;
 const createBulkInsertStream = require('./createBulkInsertStream');
 const fs = require('fs');
 const {
@@ -24,10 +25,29 @@ function transformMongoData(row) {
     if (row._id instanceof ObjectId) {
       row = { ...row, _id: row._id.toString() };
     }
-    return EJSON.serialize(row);
+
+    // Try EJSON serialization first
+    try {
+      if (EJSON.serialize) {
+        return EJSON.serialize(row);
+      }
+    } catch (serializeErr) {
+      console.error('EJSON.serialize failed:', serializeErr);
+    }
+
+    // Try EJSON stringify as fallback
+    try {
+      if (EJSON.stringify) {
+        return EJSON.stringify(row);
+      }
+    } catch (stringifyErr) {
+      console.error('EJSON.stringify failed:', stringifyErr);
+    }
+
+    // Last resort: return plain object with stringified _id
+    return { ...row };
   } catch (err) {
-    console.error('Error serializing row:', err);
-    // If serialization fails, return a basic object with the data
+    console.error('Error in transformMongoData:', err);
     return { ...row };
   }
 }
@@ -46,7 +66,7 @@ function convertObjectId(condition) {
   // EJSON objects from the frontend will have $type field
   if (typeof condition === 'object' && condition.$type) {
     try {
-      return EJSON.deserialize(condition);
+      return EJSON.deserialize ? EJSON.deserialize(condition) : EJSON.parse(condition);
     } catch (err) {
       return condition;
     }
@@ -358,7 +378,7 @@ const driver = {
 
       const collection = dbhan.getDatabase().collection(options.pureName);
       if (options.countDocuments) {
-        const count = await collection.count(convertObjectId(mongoCondition) || {}, {});
+        const count = await collection.countDocuments(convertObjectId(mongoCondition) || {});
         return { count };
       } else if (options.aggregate) {
         let cursor = collection.aggregate(convertObjectId(convertToMongoAggregate(options.aggregate)), {
@@ -420,18 +440,20 @@ const driver = {
           };
           const doc = await collection.findOne(convertObjectId(update.condition));
           if (doc) {
-            const resdoc = await collection.replaceOne(convertObjectId(update.condition), {
-              ...convertObjectId(document),
-              _id: doc._id,
+            const resdoc = await collection.updateOne(convertObjectId(update.condition), {
+              $set: {
+                ...convertObjectId(document),
+                _id: doc._id,
+              },
             });
-            res.replaced.push(resdoc._id);
+            res.replaced.push(doc._id);
           }
         } else {
           const set = convertObjectId(_.pickBy(update.fields, (v, k) => !v || !v.$$undefined$$));
           const unset = _.fromPairs(
             Object.keys(update.fields)
               .filter((k) => update.fields[k] && update.fields[k].$$undefined$$)
-              .map((k) => [k, ''])
+              .map((k) => [k, 1])
           );
           const updates = {};
           if (!_.isEmpty(set)) updates.$set = set;
