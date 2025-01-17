@@ -52,6 +52,7 @@ const driver = {
   getQuerySplitterOptions: () => mongoSplitterOptions,
 
   showConnectionField: (field, values) => {
+    console.log('SHOW CONNECTION FIELD', field, values);
     if (field == 'useDatabaseUrl') return true;
     if (values.useDatabaseUrl) {
       return ['databaseUrl', 'defaultDatabase', 'singleDatabase', 'isReadOnly'].includes(field);

@@ -25,16 +25,16 @@
   "devDependencies": {
     "byline": "^5.0.0",
     "dbgate-plugin-tools": "^1.0.8",
-    "dbgate-tools": "^5.0.0",
     "json-stable-stringify": "^1.0.1",
     "webpack": "^4.42.0",
     "webpack-cli": "^3.3.11"
   },
   "dependencies": {
-    "bson": "^6.8.0",
+    "bson": "^1.1.6",
     "dbgate-query-splitter": "^4.11.3",
+    "dbgate-tools": "^5.0.0",
     "is-promise": "^4.0.0",
     "lodash": "^4.17.21",
-    "mongodb": "^2.0.0"
+    "mongodb": "^3.1.10"
   }
 }
