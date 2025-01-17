@@ -1,4 +1,5 @@
 const { DatabaseAnalyser } = global.DBGATE_PACKAGES['dbgate-tools'];
+const fs = require('fs');
 
 class Analyser extends DatabaseAnalyser {
   constructor(dbhan, driver, version) {
@@ -7,7 +8,11 @@ class Analyser extends DatabaseAnalyser {
 
   async _runAnalysis() {
     const collectionsAndViews = await this.dbhan.getDatabase().listCollections().toArray();
-    const collections = collectionsAndViews.filter((x) => x.type == 'collection');
+    fs.appendFileSync(
+      '/Users/thomas/Downloads/out.txt',
+      'collectionsAndViews: ' + JSON.stringify(collectionsAndViews, null, 2)
+    );
+    const collections = collectionsAndViews.filter((x) => x /*.type == 'collection'*/);
     const views = collectionsAndViews.filter((x) => x.type == 'view');
 
     let stats;
@@ -26,23 +31,29 @@ class Analyser extends DatabaseAnalyser {
       );
     } catch (e) {
       // $collStats not supported
-      stats = {};
+      stats = [];
     }
 
     const res = this.mergeAnalyseResult({
       collections: [
         ...collections.map((x, index) => ({
           pureName: x.name,
+          objectType: 'collections',
           tableRowCount: stats[index] ? stats[index].count : 0,
-          uniqueKey: [{ columnName: '_id' }],
-          partitionKey: [{ columnName: '_id' }],
-          clusterKey: [{ columnName: '_id' }],
+          columns: [{ columnName: '_id', dataType: 'objectId' }],
+          primaryKey: [{ columnName: '_id' }],
+          foreignKeys: [],
+          contentHash: null,
+          modifyDate: new Date(),
         })),
-        ...views.map((x, index) => ({
+        ...views.map((x) => ({
           pureName: x.name,
-          uniqueKey: [{ columnName: '_id' }],
-          partitionKey: [{ columnName: '_id' }],
-          clusterKey: [{ columnName: '_id' }],
+          objectType: 'views',
+          columns: [{ columnName: '_id', dataType: 'objectId' }],
+          primaryKey: [{ columnName: '_id' }],
+          foreignKeys: [],
+          contentHash: null,
+          modifyDate: new Date(),
         })),
       ],
     });

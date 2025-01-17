@@ -80,19 +80,23 @@ const driver = {
 
     const client = new MongoClient(mongoUrl, options);
 
-    fs.appendFileSync('/Users/thomas/Downloads/out.txt', 'mongoUrl: ' + mongoUrl);
+    ////fs.appendFileSync.'/Users/thomas/Downloads/out.txt', 'mongoUrl: ' + mongoUrl);
     await client.connect();
+    const db = database ? client.db(database) : client.db();
+    // Test database connection and list collections to verify access
+    await db.listCollections().toArray();
+
     const res = {
       client,
       database,
-      getDatabase: database ? () => client.db(database) : () => client.db(),
+      getDatabase: () => db,
     };
-    fs.appendFileSync('/Users/thomas/Downloads/out.txt', 'res: ' + client + database);
+    ////fs.appendFileSync.'/Users/thomas/Downloads/out.txt', 'Connected to database: ' + database);
     return res;
   },
   // @ts-ignore
   async query(dbhan, sql) {
-    fs.appendFileSync('/Users/thomas/Downloads/out.txt', 'query: ' + dbhan + sql);
+    ////fs.appendFileSync.'/Users/thomas/Downloads/out.txt', 'query: ' + dbhan + sql);
     return {
       rows: [],
       columns: [],
@@ -106,7 +110,7 @@ const driver = {
     if (isPromise(res)) await res;
   },
   async operation(dbhan, operation, options) {
-    fs.appendFileSync('/Users/thomas/Downloads/out.txt', 'operation: ' + dbhan + JSON.stringify(operation));
+    //fs.appendFileSync.'/Users/thomas/Downloads/out.txt', 'operation: ' + dbhan + JSON.stringify(operation));
     const { type } = operation;
     switch (type) {
       case 'createCollection':
@@ -130,7 +134,7 @@ const driver = {
     // saveScriptToDatabase({ conid: connection._id, database: name }, `db.createCollection('${newCollection}')`);
   },
   async stream(dbhan, sql, options) {
-    fs.appendFileSync('/Users/thomas/Downloads/out.txt', 'stream: ' + dbhan + sql);
+    //fs.appendFileSync.'/Users/thomas/Downloads/out.txt', 'stream: ' + dbhan + sql);
     let func;
     try {
       func = eval(`(db,ObjectId) => ${sql}`);
@@ -245,7 +249,7 @@ const driver = {
     await db.command({ profile: old.was, slowms: old.slowms });
   },
   async readQuery(dbhan, sql, structure) {
-    fs.appendFileSync('/Users/thomas/Downloads/out.txt', 'readQuery: ' + dbhan + sql);
+    //fs.appendFileSync.'/Users/thomas/Downloads/out.txt', 'readQuery: ' + dbhan + sql);
     try {
       const json = JSON.parse(sql);
       if (json && json.pureName) {
@@ -300,11 +304,27 @@ const driver = {
   },
   async listDatabases(dbhan) {
     const res = await dbhan.getDatabase().admin().listDatabases();
-    fs.appendFileSync('/Users/thomas/Downloads/out.txt', 'listDatabases res: ' + JSON.stringify(res));
+    //fs.appendFileSync.'/Users/thomas/Downloads/out.txt', 'listDatabases res: ' + JSON.stringify(res));
     return res.databases;
   },
+
+  async listCollections(dbhan) {
+    const collectionsAndViews = await dbhan.getDatabase().listCollections().toArray();
+    //fs.appendFileSync.'/Users/thomas/Downloads/out.txt', 'listCollections res: ' + JSON.stringify(collectionsAndViews));
+
+    return collectionsAndViews.map((collection) => ({
+      ...collection,
+      pureName: collection.name,
+      objectId: collection.name,
+      tableRowCount: null,
+      contentHash: null,
+      columns: [{ columnName: '_id', dataType: 'objectId' }],
+      primaryKey: [{ columnName: '_id' }],
+      foreignKeys: [],
+    }));
+  },
   async readCollection(dbhan, options) {
-    fs.appendFileSync('/Users/thomas/Downloads/out.txt', 'readCollection: ' + dbhan + JSON.stringify(options));
+    //fs.appendFileSync.'/Users/thomas/Downloads/out.txt', 'readCollection: ' + dbhan + JSON.stringify(options));
     try {
       const mongoCondition = convertToMongoCondition(options.condition);
 
