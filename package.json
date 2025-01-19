@@ -3,7 +3,7 @@
   "main": "dist/backend.js",
   "version": "1.0.2",
   "license": "MIT",
-  "description": "MongoDB v2 plugin for DbGate",
+  "description": "MongoDB v2 plugin for DbGate ![icon](https://github.com/ttisch/dbgate-plugin-mongo-v2/blob/main/icon.svg)",
   "author": "Thomas Tisch",
   "keywords": [
     "dbgate",
