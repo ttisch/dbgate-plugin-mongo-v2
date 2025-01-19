@@ -1,7 +1,7 @@
 {
   "name": "dbgate-plugin-mongo-v2",
   "main": "dist/backend.js",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "license": "MIT",
   "description": "MongoDB v2 plugin for DbGate",
   "author": "Thomas Tisch",
@@ -10,7 +10,8 @@
     "dbgateplugin"
   ],
   "files": [
-    "dist"
+    "dist",
+    "icon.svg"
   ],
   "scripts": {
     "build:frontend": "webpack --config webpack-frontend.config",
